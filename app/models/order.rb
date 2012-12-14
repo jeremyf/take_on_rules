@@ -16,6 +16,7 @@ class Order < ActiveRecord::Base
           sales_by_price(start_at: [0,0], end_at: [5, 19])
           sales_by_item(start_at: [0,20], end_at: [5, 39])
           sales_by_year_month(start_at: [0,40], end_at: [5, 59])
+          sales_by_weekday(start_at: [0,60], end_at: [5, 79])
         end
         filename = Rails.root.join('tmp/simple.xlsx')
         p.serialize(filename)
@@ -41,6 +42,14 @@ class Order < ActiveRecord::Base
     def sales_by_year_month(chart_options = {})
       chart_options[:title] = "Sales by Year/Month"
       data = Order.group("strftime('%Y-%m', ordered_at)").count
+      render_chart_and_return_end_row(data, chart_options)
+    end
+
+    def sales_by_weekday(chart_options = {})
+      chart_options[:title] = "Sales by Year/Month"
+      raw_data = Order.group("strftime('%w', ordered_at)").count
+      data = []
+      raw_data.each_with_object(data) {|rd,mem| mem << [Date::ABBR_DAYNAMES[rd[0].to_i], rd[1]] }
       render_chart_and_return_end_row(data, chart_options)
     end
 
