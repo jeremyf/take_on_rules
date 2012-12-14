@@ -18,6 +18,7 @@ ActiveRecord::Schema.define(:version => 20121212214024) do
     t.integer  "customer_number"
     t.datetime "ordered_at"
     t.string   "product_model"
+    t.string   "product_name"
     t.integer  "sell_price_cents",    :default => 0,     :null => false
     t.string   "sell_price_currency", :default => "USD", :null => false
     t.integer  "earnings_cents",      :default => 0,     :null => false
@@ -30,5 +31,6 @@ ActiveRecord::Schema.define(:version => 20121212214024) do
   add_index "orders", ["order_number", "product_model"], :name => "index_orders_on_order_number_and_product_model", :unique => true
   add_index "orders", ["ordered_at"], :name => "index_orders_on_ordered_at"
   add_index "orders", ["product_model"], :name => "index_orders_on_product_model"
+  add_index "orders", ["product_name"], :name => "index_orders_on_product_name"
 
 end

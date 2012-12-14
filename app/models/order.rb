@@ -7,30 +7,66 @@ class Order < ActiveRecord::Base
   monetize :sell_price_cents, allow_nil: true
   monetize :earnings_cents, allow_nil: true
 
-  scope :with_weekday_index, lambda { |i|
-    where("strftime('%w', ordered_at) = ?", i.to_s)
-  }
+  class Reporter
+    def call
+      Axlsx::Package.new do |p|
+        p.workbook.add_worksheet(:name => "Bar Chart") do |sheet|
+          @sheet = sheet
+          @previous_end_row = 0
+          sales_by_price(start_at: [0,0], end_at: [5, 19])
+          sales_by_item(start_at: [0,20], end_at: [5, 39])
+          sales_by_year_month(start_at: [0,40], end_at: [5, 59])
+        end
+        filename = Rails.root.join('tmp/simple.xlsx')
+        p.serialize(filename)
+        `open #{filename}`
+      end
+    end
+
+    protected
+    def sales_by_price(chart_options = {})
+      chart_options[:title] = "Sales by Price"
+      raw_data = Order.group("sell_price_cents").count
+      data = []
+      raw_data.each_with_object(data) {|rd,mem| mem << [rd[0].to_f/100, rd[1]] }
+      render_chart_and_return_end_row(data, chart_options)
+    end
+
+    def sales_by_item(chart_options = {})
+      chart_options[:title] = "Sales by Item"
+      data = Order.select("product_name").group("product_name").count
+      render_chart_and_return_end_row(data, chart_options)
+    end
+
+    def sales_by_year_month(chart_options = {})
+      chart_options[:title] = "Sales by Year/Month"
+      data = Order.group("strftime('%Y-%m', ordered_at)").count
+      render_chart_and_return_end_row(data, chart_options)
+    end
+
+    def render_chart_and_return_end_row(data, chart_options)
+      chart_options.reverse_merge!(show_legend: false)
+      @sheet.add_row [chart_options.fetch(:title)]
+      data.each {|label,count|
+        @sheet.add_row [label, count]
+      }
+      start_row = @previous_end_row + 2
+      end_row = start_row + data.size - 1
+      @sheet.add_chart(Axlsx::Bar3DChart, chart_options) do |chart|
+        chart.add_series(
+          data: @sheet["B#{start_row}:B#{end_row}"],
+          labels: @sheet["A#{start_row}:A#{end_row}"],
+          colors: ['1982D1']*data.size
+        )
+        chart.bar_dir = :col
+        chart.valAxis.label_rotation = -45
+      end
+      @previous_end_row = end_row
+    end
+  end
 
   def self.report
-    Axlsx::Package.new do |p|
-      p.workbook.add_worksheet(:name => "Bar Chart") do |sheet|
-        sheet.add_row ["Simple Bar Chart"]
-        %w(Sun Mon Tue Wed Thu Fri Sat).each_with_index { |label, index|
-          sheet.add_row [label, index, Order.with_weekday_index(index).count ]
-        }
-        sheet.add_chart(Axlsx::Bar3DChart, show_legend: false, start_at: [0,5], end_at: [7, 25], title: "Sales by Day") do |chart|
-          chart.add_series(
-            data: sheet["C2:C8"],
-            labels: sheet["A2:A8"],
-            colors: ['1982D1']*7
-          )
-          chart.bar_dir = :col
-          chart.valAxis.label_rotation = -45
-        end
-      end
-      p.serialize('simple.xlsx')
-      `open simple.xlsx`
-    end
+    Reporter.new.call
   end
 
 end
