@@ -25,4 +25,4 @@ end
 
 parse_csv
 puts Order.all.sum(&:earnings)
-# Order.report
+Order.report
