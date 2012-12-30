@@ -6,7 +6,7 @@ class Order < ActiveRecord::Base
 
   monetize :sell_price_cents, allow_nil: true
   monetize :earnings_cents, allow_nil: true
-
+  scope :not_free, where("earnings_cents > ?", 0)
   class Reporter
     def call
       Axlsx::Package.new do |p|
@@ -28,7 +28,7 @@ class Order < ActiveRecord::Base
     protected
     def sales_by_price(chart_options = {})
       chart_options[:title] = "Sales by Price"
-      raw_data = Order.group("sell_price_cents").count
+      raw_data = Order.not_free.group("sell_price_cents").count
       data = []
       raw_data.each_with_object(data) {|rd,mem| mem << [rd[0].to_f/100, rd[1]] }
       render_chart_and_return_end_row(data, chart_options)
@@ -36,19 +36,19 @@ class Order < ActiveRecord::Base
 
     def sales_by_item(chart_options = {})
       chart_options[:title] = "Sales by Item"
-      data = Order.select("product_name").group("product_name").count
+      data = Order.not_free.select("product_name").group("product_name").count
       render_chart_and_return_end_row(data, chart_options)
     end
 
     def sales_by_year_month(chart_options = {})
       chart_options[:title] = "Sales by Year/Month"
-      data = Order.group("strftime('%Y-%m', ordered_at)").count
+      data = Order.not_free.group("strftime('%Y-%m', ordered_at)").count
       render_chart_and_return_end_row(data, chart_options)
     end
 
     def sales_by_weekday(chart_options = {})
       chart_options[:title] = "Sales by Weekday"
-      raw_data = Order.group("strftime('%w', ordered_at)").count
+      raw_data = Order.not_free.group("strftime('%w', ordered_at)").count
       data = []
       raw_data.each_with_object(data) {|rd,mem| mem << [Date::ABBR_DAYNAMES[rd[0].to_i], rd[1]] }
       render_chart_and_return_end_row(data, chart_options)
@@ -56,7 +56,7 @@ class Order < ActiveRecord::Base
 
     def sales_by_hour(chart_options = {})
       chart_options[:title] = "Sales by Hour"
-      data = Order.group("strftime('%H', ordered_at)").count
+      data = Order.not_free.group("strftime('%H', ordered_at)").count
       render_chart_and_return_end_row(data, chart_options)
     end
 
