@@ -36,7 +36,7 @@ class Order < ActiveRecord::Base
 
     def sales_by_item(chart_options = {})
       chart_options[:title] = "Sales by Item"
-      data = Order.not_free.select("product_name").group("product_name").count
+      data = Order.select("product_name").group("product_name").count
       render_chart_and_return_end_row(data, chart_options)
     end
 
@@ -75,6 +75,7 @@ class Order < ActiveRecord::Base
           colors: ['1982D1']*data.size
         )
         chart.bar_dir = :col
+        chart.d_lbls.show_val = true
         chart.valAxis.label_rotation = -45
       end
       @previous_end_row = end_row
