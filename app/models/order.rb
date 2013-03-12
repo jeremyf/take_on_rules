@@ -48,7 +48,7 @@ class Order < ActiveRecord::Base
     end
 
     def sales_by_week(chart_options = {})
-      chart_options[:title] = "Sales by Year/Month"
+      chart_options[:title] = "Sales by Year/Week"
       data = Order.not_free.group("strftime('%Y wk-%W', ordered_at)").count
       render_chart_and_return_end_row(data, chart_options)
     end
